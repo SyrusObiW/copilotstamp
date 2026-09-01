@@ -47,6 +47,24 @@
   .done-banner.show { opacity:1; max-height:220px; margin-top:8px; }
   .done-banner .big { font-size:20px; font-weight:600; background:linear-gradient(90deg,#2AA5F0,#8A50D8,#EE5091,#FC7942); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .done-banner .sub { font-size:13px; color:#9a9ab5; margin-top:8px; line-height:1.6; }
+  .rewards { width:min(88vw,340px); margin:14px 0 4px; display:flex; flex-direction:column; gap:10px; }
+  .reward {
+    display:flex; align-items:center; gap:12px; padding:12px 14px;
+    border-radius:14px; background:#1a1b2e; border:1.5px solid #2a2b42;
+    opacity:.5; filter:grayscale(.6); transition:all .45s ease;
+  }
+  .reward.unlocked {
+    opacity:1; filter:none;
+    background:linear-gradient(135deg,rgba(42,165,240,.16),rgba(138,80,216,.16));
+    border-color:#5DCAA5; box-shadow:0 4px 16px rgba(93,202,165,.18);
+  }
+  .reward-icon { font-size:26px; flex-shrink:0; }
+  .reward-info { flex:1; text-align:left; }
+  .reward-title { font-size:15px; font-weight:600; color:#fff; }
+  .reward-cond { font-size:12px; color:#9a9ab5; margin-top:2px; }
+  .reward-status { font-size:12px; font-weight:600; color:#6a6a85; flex-shrink:0; }
+  .reward.unlocked .reward-status { color:#5DCAA5; }
+  .reward-note { font-size:12px; color:#8a8aa5; text-align:center; line-height:1.6; margin-top:6px; }
   .reset { margin-top:22px; font-size:12px; color:#55566f; text-decoration:underline; background:none; border:none; cursor:pointer; }
   .confetti { position:fixed; top:-10px; width:9px; height:14px; opacity:0; z-index:50; border-radius:2px; }
 
@@ -108,9 +126,32 @@
 
   <div class="hint" id="hint">按上方按鈕，對準攤位 QR 即可解鎖區塊</div>
 
-  <div class="done-banner" id="doneBanner">
-    <div class="big">徽章解鎖完成！</div>
-    <div class="sub">恭喜集滿五枚，感謝走訪每一個攤位<br>歡迎至主櫃台出示此畫面兌換好禮</div>
+  <div class="rewards" id="rewards">
+    <div class="reward" id="reward1">
+      <div class="reward-icon">🎁</div>
+      <div class="reward-info">
+        <div class="reward-title">第一份好禮</div>
+        <div class="reward-cond">解鎖 1 站即可領取</div>
+      </div>
+      <div class="reward-status" id="rewardStatus1">未達成</div>
+    </div>
+    <div class="reward" id="reward2">
+      <div class="reward-icon">🎁</div>
+      <div class="reward-info">
+        <div class="reward-title">第二份好禮</div>
+        <div class="reward-cond">解鎖 3 站以上可領取</div>
+      </div>
+      <div class="reward-status" id="rewardStatus2">未達成</div>
+    </div>
+    <div class="reward" id="reward3">
+      <div class="reward-icon">🏆</div>
+      <div class="reward-info">
+        <div class="reward-title">第三份好禮</div>
+        <div class="reward-cond">全部集滿 5 站可領取</div>
+      </div>
+      <div class="reward-status" id="rewardStatus3">未達成</div>
+    </div>
+    <div class="reward-note">達成後歡迎至主櫃台出示此畫面兌換好禮</div>
   </div>
 
   <button class="reset" id="resetBtn">重設進度</button>
@@ -10251,22 +10292,44 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
     return !already;
   }
 
+  var prevTiers = 0;
   function refreshCount(){
     var n=0; for(var i=1;i<=5;i++){ if(state[i]) n++; }
     document.getElementById('count').textContent = n;
-    if(n>=5){
-      setTimeout(function(){
-        document.getElementById('doneBanner').classList.add('show');
-        document.getElementById('hint').style.display='none';
-        document.getElementById('scanBtn').style.display='none';
-        celebrate();
-      }, 500);
+
+    var tiers = (n>=1?1:0) + (n>=3?1:0) + (n>=5?1:0);
+    setReward(1, n>=1);
+    setReward(2, n>=3);
+    setReward(3, n>=5);
+
+    if(tiers > prevTiers){
+      celebrate();
+      var hint = document.getElementById('hint');
+      if(n>=5){ hint.textContent = '恭喜集滿五枚，三份好禮全部達成！'; }
+      else if(n>=3){ hint.textContent = '已達 '+n+' 站，可領取第二份好禮！繼續集滿五站'; }
+      else { hint.textContent = '已解鎖第一份好禮！繼續前往其他攤位'; }
     }
+    prevTiers = tiers;
+
+    if(n>=5){ document.getElementById('scanBtn').style.display='none'; }
+  }
+
+  function setReward(k, ok){
+    var el = document.getElementById('reward'+k);
+    var st = document.getElementById('rewardStatus'+k);
+    if(!el) return;
+    if(ok){ el.classList.add('unlocked'); st.textContent='可領取'; }
+    else { el.classList.remove('unlocked'); st.textContent='未達成'; }
   }
 
   function render(){
+    // baseline tier count from already-saved stamps (minus the one just unlocked this load),
+    // so confetti only fires for genuinely new achievements, not on every reload
+    var prior=0; for(var i=1;i<=5;i++){ if(state[i] && String(i)!==String(justUnlocked)) prior++; }
+    prevTiers = (prior>=1?1:0) + (prior>=3?1:0) + (prior>=5?1:0);
     for(var i=1;i<=5;i++){ if(state[i]) unlock(i, i==justUnlocked); }
     if(justUnlocked){ document.getElementById('hint').textContent = '已解鎖第 '+justUnlocked+' 站！繼續前往其他攤位'; }
+    else { refreshCount(); }
   }
 
   function celebrate(){
