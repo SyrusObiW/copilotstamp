@@ -10305,7 +10305,7 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
     if(tiers > prevTiers){
       celebrate();
       var hint = document.getElementById('hint');
-      if(n>=5){ hint.textContent = '恭喜集滿五枚，三份好禮全部達成！'; }
+      if(n>=5){ hint.style.display='none'; }
       else if(n>=3){ hint.textContent = '已達 '+n+' 站，可領取第二份好禮！繼續集滿五站'; }
       else { hint.textContent = '已解鎖第一份好禮！繼續前往其他攤位'; }
     }
@@ -10330,6 +10330,8 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
     for(var i=1;i<=5;i++){ if(state[i]) unlock(i, i==justUnlocked); }
     if(justUnlocked){ document.getElementById('hint').textContent = '已解鎖第 '+justUnlocked+' 站！繼續前往其他攤位'; }
     else { refreshCount(); }
+    var doneAll=true; for(var j=1;j<=5;j++){ if(!state[j]) doneAll=false; }
+    if(doneAll){ document.getElementById('hint').style.display='none'; }
   }
 
   function celebrate(){
@@ -10392,7 +10394,8 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
           var isNew = unlock(n, true);
           closeScanner();
           var hint = document.getElementById('hint');
-          hint.textContent = isNew ? ('已解鎖第 '+n+' 站！繼續前往其他攤位') : ('第 '+n+' 站已經解鎖過囉');
+          var allDone=true; for(var k=1;k<=5;k++){ if(!state[k]) allDone=false; }
+          if(!allDone){ hint.textContent = isNew ? ('已解鎖第 '+n+' 站！繼續前往其他攤位') : ('第 '+n+' 站已經解鎖過囉'); }
           return;
         }
         // 掃到 QR 但不是本活動的
